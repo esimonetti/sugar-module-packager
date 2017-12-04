@@ -179,11 +179,9 @@ if(!empty($module_files_list)) {
 }
 
 $installdefs_file = 'installdefs.php';
+$installdefs = array();
 if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$installdefs_file)) {
     require(realpath($config_folder).DIRECTORY_SEPARATOR.$installdefs_file);
-    if(empty($installdefs)) {
-        $installdefs = array();
-    }
     $installdefs = array_merge_recursive($installdefs_generated, $installdefs);
 }
 
