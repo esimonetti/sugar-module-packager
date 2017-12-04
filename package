@@ -1,0 +1,219 @@
+#!/usr/bin/env php
+<?php
+
+// Enrico Simonetti
+// enricosimonetti.com
+//
+// 2017-12-01 on Sugar 7.9.1.0
+//
+// Tool that helps package Sugar installable modules
+
+if (empty($argv[1])) {
+    die('Use '.$argv[0].' [version]'.PHP_EOL);
+}
+
+$version = $argv[1];
+
+$release_folder = 'releases';
+$config_folder = 'configuration';
+$src_folder = 'src';
+$pkg_folder = 'pkg';
+
+$files_to_ignore = array('.DS_Store', '.gitkeep');
+$package_files_to_dont_copy = array('LICENSE', 'README.txt');
+
+// check existence of manifest template
+$manifest_base = array(
+    'version' => $version,
+    'is_uninstallable' => true,
+    'published_date' => date('Y-m-d H:i:s'),
+    'type' => 'module',
+);
+
+$manifest_file = 'manifest.php';
+if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file)) {
+    require(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file);
+    $manifest = array_merge_recursive($manifest_base, $manifest);
+} else {
+    // create sample empty manifest file
+    $manifestContent = "<?php".PHP_EOL."\$manifest['id'] = '';".PHP_EOL.
+        "\$manifest['built_in_version'] = '';".PHP_EOL.
+        "\$manifest['name'] = '';".PHP_EOL.
+        "\$manifest['description'] = '';".PHP_EOL.
+        "\$manifest['author'] = 'Enrico Simonetti';".PHP_EOL.
+        "\$manifest['acceptable_sugar_versions']['regex_matches'] = array('^7.9.[\d]+.[\d]+$');";
+
+    file_put_contents(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file, $manifestContent);
+}
+
+if( empty($manifest['id']) ||
+    empty($manifest['built_in_version']) ||
+    empty($manifest['name']) ||
+    empty($manifest['version']) ||
+    empty($manifest['author']) ||
+    empty($manifest['acceptable_sugar_versions']['regex_matches']) ) {
+        die('Please fill in the required details on your '.$config_folder.DIRECTORY_SEPARATOR.$manifest_file . ' file.'.PHP_EOL);
+}
+
+$id = $manifest['id'].'_'.$version;
+$zipFile = $release_folder.DIRECTORY_SEPARATOR.'module_'.$id.'.zip';
+
+// create release if does not exist
+if (!is_dir($release_folder)) {
+    mkdir($release_folder, 0777, true);
+}
+
+if (file_exists($zipFile)) {
+    die('Release '.$zipFile.' already exists!'.PHP_EOL);
+}
+
+// create pkg if does not exist
+if (!is_dir($pkg_folder)) {
+    mkdir($pkg_folder, 0777, true);
+}
+
+// clear current pkg
+$pkg_files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(realpath($pkg_folder), RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::LEAVES_ONLY
+);
+
+if (!empty($pkg_files)) {
+    foreach ($pkg_files as $pkg_file) {
+        unlink($pkg_file->getPathname());
+    }
+}
+
+// copy into pkg all src files
+$common_files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(realpath($src_folder), RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::LEAVES_ONLY
+);
+
+$common_files_list = getFiles($common_files, realpath($src_folder), $files_to_ignore);
+if (!empty($common_files_list)) {
+    foreach ($common_files_list as $fileRel => $fileReal) {
+        $destination_folder = $pkg_folder.DIRECTORY_SEPARATOR.dirname($fileRel).DIRECTORY_SEPARATOR;
+        
+        if (!is_dir($destination_folder)) {
+            mkdir($destination_folder, 0777, true);
+        }
+        copy($fileReal, $destination_folder.basename($fileReal));
+    }
+}
+
+$template_cfg_file = 'templates.php';
+if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$template_cfg_file)) {
+    require(realpath($config_folder).DIRECTORY_SEPARATOR.$template_cfg_file);
+
+    if (!empty($templates)) {
+        foreach($templates as $template_src_folder => $template_values) {
+            if(is_dir(realpath($template_src_folder)) && !empty($template_values['folder_pattern']) && !empty($template_values['modules'])) {
+                $template_dst_folder = $template_values['folder_pattern'];
+                $modules = $template_values['modules'];
+
+                // generate runtime files based on the templates
+                $template_files = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator(realpath($template_src_folder), RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::LEAVES_ONLY
+                );
+
+                $template_files_list = getFiles($template_files, realpath($template_src_folder), $files_to_ignore);
+                if (!empty($template_files_list)) {
+                    $template_dst_folder = str_replace('/', DIRECTORY_SEPARATOR, $template_dst_folder);
+                    
+                    foreach ($modules as $module => $object) {
+                        echo '* Generating template files for module: '.$module.PHP_EOL;
+                        // replace modulename from path
+                        $current_module_destination = str_replace('{MODULENAME}', $module, $template_dst_folder);
+                        foreach ($template_files_list as $fileRel => $fileReal) {
+                            // build destination
+                            $destination_folder = $pkg_folder.DIRECTORY_SEPARATOR.$current_module_destination.DIRECTORY_SEPARATOR.dirname($fileRel).DIRECTORY_SEPARATOR;
+                            echo '* Generating '.$destination_folder.basename($fileRel).PHP_EOL;
+                            
+                            if (!is_dir($destination_folder)) {
+                                mkdir($destination_folder, 0777, true);
+                            }
+                            copy($fileReal, $destination_folder . basename($fileRel));
+
+                            // modify content
+                            $content = file_get_contents($destination_folder . basename($fileRel));
+                            $content = str_replace('{MODULENAME}', $module, $content);
+                            $content = str_replace('{OBJECTNAME}', $object, $content);
+                            file_put_contents($destination_folder . basename($fileRel), $content);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+echo 'Creating '.$zipFile.'...'.PHP_EOL;
+
+$zip = new ZipArchive();
+$zip->open($zipFile, ZipArchive::CREATE);
+$basePath = realpath($pkg_folder);
+
+$module_files = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::LEAVES_ONLY
+);
+
+$module_files_list = getFiles($module_files, $basePath, $files_to_ignore);
+
+$installdefs_generated = array('copy' => array());
+if(!empty($module_files_list)) {
+    foreach($module_files_list as $fileRel => $fileReal) {
+        $zip->addFile($fileReal, $fileRel);
+        if(!in_array(basename($fileRel), $package_files_to_dont_copy)) {
+            $installdefs_generated['copy'][] = array(
+                'from' => '<basepath>/' . $fileRel,
+                'to' => $fileRel,
+            );
+            echo '* Automatically added manifest copy directive for '.$fileRel.PHP_EOL;
+        } else {
+            echo '* Skipped manifest copy directive for '.$fileRel.PHP_EOL;
+        }
+    }
+}
+
+$installdefs_file = 'installdefs.php';
+if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$installdefs_file)) {
+    require(realpath($config_folder).DIRECTORY_SEPARATOR.$installdefs_file);
+    if(empty($installdefs)) {
+        $installdefs = array();
+    }
+    $installdefs = array_merge_recursive($installdefs_generated, $installdefs);
+}
+
+$manifestContent = sprintf(
+    "<?php\n\$manifest = %s;\n\$installdefs = %s;\n",
+    var_export($manifest, true),
+    var_export($installdefs, true)
+);
+
+file_put_contents(realpath($pkg_folder).DIRECTORY_SEPARATOR.$manifest_file, $manifestContent);
+$zip->addFromString($manifest_file, $manifestContent);
+$zip->close();
+
+
+echo 'Packaged'.PHP_EOL;
+
+function getFiles(RecursiveIteratorIterator $files, $basePath, $to_ignore) {
+    $result = array();
+    if (!empty($files) && !empty($basePath)) {
+        foreach ($files as $name => $file) {
+            if ($file->isFile()) {
+                $fileReal = $file->getRealPath();
+                if (!in_array($file->getFilename(), $to_ignore)) {
+                    $fileRelative = '' . str_replace($basePath . '/', '', $fileReal);
+                    $result[$fileRelative] = $fileReal;
+                }
+            }
+        }
+    }
+    return $result;
+}
+
+exit(0);
