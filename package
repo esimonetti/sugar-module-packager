@@ -30,8 +30,12 @@ $manifest_base = array(
     'type' => 'module',
 );
 
+if(!is_dir($config_folder)) {
+    mkdir($config_folder, 0777, true);
+}
+
 $manifest_file = 'manifest.php';
-if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file)) {
+if (file_exists(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file)) {
     require(realpath($config_folder).DIRECTORY_SEPARATOR.$manifest_file);
     $manifest = array_merge_recursive($manifest_base, $manifest);
 } else {
