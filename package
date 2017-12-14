@@ -188,6 +188,9 @@ if (is_dir($config_folder) && file_exists(realpath($config_folder).DIRECTORY_SEP
     require(realpath($config_folder).DIRECTORY_SEPARATOR.$installdefs_file);
 }
 $installdefs = array_merge_recursive($installdefs_generated, $installdefs);
+if(empty($installdefs['id']) && !empty($manifest['id'])) {
+    $installdefs['id'] = $manifest['id'];
+}
 
 $manifestContent = sprintf(
     "<?php\n\$manifest = %s;\n\$installdefs = %s;\n",
