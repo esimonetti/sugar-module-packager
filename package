@@ -10,6 +10,9 @@
 
 require_once('PackageUtils.php');
 
+use SugarModulePackager\PackageOutput;
+use SugarModulePackager\PackageUtils;
+
 if (empty($argv[1])) {
     PackageOutput::message('Use '.$argv[0].' [version]');
 } else {

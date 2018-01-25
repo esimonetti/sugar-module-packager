@@ -7,6 +7,8 @@
 //
 // Tool that helps package Sugar installable modules
 
+namespace SugarModulePackager;
+
 require_once('PackageOutput.php');
 
 class PackageUtils

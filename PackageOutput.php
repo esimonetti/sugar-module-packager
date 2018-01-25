@@ -7,6 +7,8 @@
 //
 // Tool that helps package Sugar installable modules
 
+namespace SugarModulePackager;
+
 class PackageOutput
 {
     public static function message($out = '')
