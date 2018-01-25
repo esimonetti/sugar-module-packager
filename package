@@ -8,10 +8,10 @@
 //
 // Tool that helps package Sugar installable modules
 
-require('PackageUtils.php');
+require_once('PackageUtils.php');
 
 if (empty($argv[1])) {
-    PackageOutput::output('Use '.$argv[0].' [version]');
+    PackageOutput::message('Use '.$argv[0].' [version]');
 } else {
     PackageUtils::build($argv[1]);
 }
