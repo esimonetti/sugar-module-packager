@@ -8,6 +8,9 @@
 // Tool that helps package Sugar installable modules
 
 namespace SugarModulePackager;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
+use ZipArchive;
 
 require_once('PackageOutput.php');
 
