@@ -2,7 +2,7 @@
     "name": "esimonetti/sugar-module-packager",
     "description": "Utility to package Sugar customisations into module loadable packages",
     "type": "package",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "Enrico Simonetti",
@@ -10,7 +10,6 @@
             "homepage": "http://enricosimonetti.com"
         }
     ],
-    "minimum-stability": "dev",
     "bin": [
         "bin/package"
     ],
