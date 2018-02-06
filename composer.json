@@ -2,7 +2,7 @@
     "name": "esimonetti/sugar-module-packager",
     "description": "Utility to package Sugar customisations into module loadable packages",
     "type": "package",
-    "license": "mit",
+    "license": "MIT",
     "authors": [
         {
             "name": "Enrico Simonetti",
