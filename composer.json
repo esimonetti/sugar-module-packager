@@ -1,0 +1,27 @@
+{
+    "name": "esimonetti/sugar-module-packager",
+    "description": "Utility to package Sugar customisations into module loadable packages",
+    "type": "package",
+    "license": "mit",
+    "authors": [
+        {
+            "name": "Enrico Simonetti",
+            "email": "enrico.simonetti@gmail.com",
+            "homepage": "http://enricosimonetti.com"
+        }
+    ],
+    "bin": [
+        "bin/package"
+    ],
+    "require": {
+        "php": ">=5.6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "SugarModulePackager\\": "src/"
+        }
+    }
+}

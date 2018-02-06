@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+// Enrico Simonetti
+// enricosimonetti.com
+//
+// 2018-01-25 on Sugar 7.9.3.0
+//
+// Tool that helps package Sugar installable modules
+
+if (is_file($autoload = getcwd() . '/vendor/autoload.php')) {
+    require $autoload;
+}
+
+use SugarModulePackager\PackageOutput;
+use SugarModulePackager\PackageUtils;
+
+if (empty($argv[1])) {
+    PackageOutput::message('Use '.$argv[0].' [version]');
+} else {
+    PackageUtils::build($argv[1]);
+}
+
+exit(0);
