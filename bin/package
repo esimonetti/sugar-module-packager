@@ -8,7 +8,9 @@
 //
 // Tool that helps package Sugar installable modules
 
-require_once('PackageUtils.php');
+if (is_file($autoload = getcwd() . '/vendor/autoload.php')) {
+    require $autoload;
+}
 
 use SugarModulePackager\PackageOutput;
 use SugarModulePackager\PackageUtils;
