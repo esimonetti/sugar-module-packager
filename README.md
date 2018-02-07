@@ -1,7 +1,15 @@
 # sugar-module-packager
 
-`composer require esimonetti/sugar-module-packager 0.1.0`
+Require the package within your module's folder by executing: `composer require esimonetti/sugar-module-packager 0.1.0`
 
-`./vendor/bin/package <version number>`
+Your gitignore should look something like:
+```
+composer.lock
+/vendor/
+/pkg/
+/releases/
+```
 
-eg: `./vendor/bin/package 1.6`
+Once done, to run the packager execute: `./vendor/bin/package <version number>`
+
+A practical example is: `./vendor/bin/package 1.6`
