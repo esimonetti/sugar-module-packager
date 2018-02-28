@@ -15,7 +15,7 @@ use ZipArchive;
 
 class PackageUtils
 {
-    const SW_VERSION = '0.1.0';
+    const SW_VERSION = '0.2.0';
     const SW_NAME = 'SugarModulePackager';
 
     protected static $release_directory = 'releases';
@@ -27,8 +27,21 @@ class PackageUtils
     protected static $pkg_directory = 'pkg';
     protected static $manifest_file = 'manifest.php';
 
-    protected static $files_to_not_package = array('.DS_Store', '.gitkeep');
-    protected static $files_to_not_copy = array('LICENSE', 'README.txt');
+    protected static $files_to_remove_from_zip = array(
+        '.DS_Store',
+        '.gitkeep'
+    );
+    protected static $files_to_remove_from_manifest_copy = array(
+        'LICENSE',
+        'LICENSE.txt',
+        'README.txt'
+    );
+    protected static $installdefs_keys_to_remove_from_manifest_copy = array(
+        'pre_execute',
+        'post_execute',
+        'pre_uninstall',
+        'post_uninstall'
+    );
     protected static $manifest_default_install_version_string = "array('^7.9.[\d]+.[\d]+$')";
     protected static $manifest_default_author = 'Enrico Simonetti';
 
@@ -85,10 +98,10 @@ class PackageUtils
         if (!empty($files_iterator) && !empty($path)) {
             foreach ($files_iterator as $name => $file) {
                 if ($file->isFile()) {
-                    $fileReal = $file->getRealPath();
-                    if (!in_array($file->getFilename(), self::$files_to_not_package)) {
-                        $fileRelative = '' . str_replace($path . '/', '', $fileReal);
-                        $result[$fileRelative] = $fileReal;
+                    $file_realpath = $file->getRealPath();
+                    if (!in_array($file->getFilename(), self::$files_to_remove_from_zip)) {
+                        $file_relative = '' . str_replace($path . '/', '', $file_realpath);
+                        $result[$file_relative] = $file_realpath;
                     }
                 }
             }
@@ -122,7 +135,6 @@ class PackageUtils
 
             if (file_exists(self::buildSimplePath(self::$config_directory, self::$manifest_file))) {
                 require(self::buildSimplePath(self::$config_directory, self::$manifest_file));
-                //$manifest = array_merge_recursive($manifest_base, $manifest);
                 $manifest = array_replace_recursive($manifest_base, $manifest);
             } else {
                 // create sample empty manifest file
@@ -154,44 +166,67 @@ class PackageUtils
 
     protected static function getInstallDefs($manifest, $module_files_list)
     {
+        $installdefs = array();
+        $installdefs_original = array();
         $installdefs_generated = array('copy' => array());
-        if (!empty($module_files_list)) {
-            foreach ($module_files_list as $fileRel => $fileReal) {
-                if (!in_array(basename($fileRel), self::$files_to_not_copy)) {
-                    $installdefs_generated['copy'][] = array(
-                        'from' => '<basepath>/' . $fileRel,
-                        'to' => $fileRel,
-                    );
-                    PackageOutput::message('* Automatically added manifest copy directive for ' . $fileRel);
-                } else {
-                    PackageOutput::message('* Skipped manifest copy directive for ' . $fileRel);
-                }
-            }
+
+        if (!empty($manifest['id'])) {
+            $installdefs_original['id'] = $manifest['id'];
         }
 
-        $installdefs = array();
-        if (empty($installdefs['id']) && !empty($manifest['id'])) {
-            $installdefs['id'] = $manifest['id'];
-        }
         if (is_dir(self::$config_directory) && 
                 file_exists(self::buildSimplePath(self::$config_directory, self::$config_installdefs_file))) {
             require(self::buildSimplePath(self::$config_directory, self::$config_installdefs_file));
         }
-        $installdefs = array_merge_recursive($installdefs, $installdefs_generated);
+
+        if (!empty($module_files_list)) {
+            foreach ($module_files_list as $file_relative => $file_realpath) {
+                if (self::shouldAddToManifestCopy($file_relative, $installdefs)) {
+                    $installdefs_generated['copy'][] = array(
+                        'from' => '<basepath>/' . $file_relative,
+                        'to' => $file_relative,
+                    );
+                    PackageOutput::message('* Automatically added manifest copy directive for ' . $file_relative);
+                } else {
+                    PackageOutput::message('* Skipped manifest copy directive for ' . $file_relative);
+                }
+            }
+        }
+
+        $installdefs = array_replace_recursive($installdefs_original, $installdefs, $installdefs_generated);
 
         return $installdefs;
     }
 
+    protected static function shouldAddToManifestCopy($file_relative, $custom_installdefs)
+    {
+        if (!in_array(basename($file_relative), self::$files_to_remove_from_manifest_copy)) {
+            // check and dont copy all *_execute and *_uninstall installdefs keyword files
+            foreach (self::$installdefs_keys_to_remove_from_manifest_copy as $to_remove) {
+                if (!empty($custom_installdefs[$to_remove])) {
+                    foreach ($custom_installdefs[$to_remove] as $manifest_file_copy) {
+                        // found matching relative file as one of the *_execute or *_uninstall scripts
+                        if (strcmp(str_replace('<basepath>/', '', $manifest_file_copy), $file_relative) == 0) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    
     protected static function copySrcIntoPkg()
     {
         // copy into pkg all src files
         $common_files_list = self::getModuleFiles(self::$src_directory);
         if (!empty($common_files_list)) {
-            foreach ($common_files_list as $fileRel => $fileReal) {
-                $destination_directory = self::$pkg_directory . DIRECTORY_SEPARATOR . dirname($fileRel) . DIRECTORY_SEPARATOR;
+            foreach ($common_files_list as $file_relative => $file_realpath) {
+                $destination_directory = self::$pkg_directory . DIRECTORY_SEPARATOR . dirname($file_relative) . DIRECTORY_SEPARATOR;
                 
                 PackageOutput::createDirectory($destination_directory);
-                PackageOutput::copyFile($fileReal, $destination_directory . basename($fileReal));
+                PackageOutput::copyFile($file_realpath, $destination_directory . basename($file_realpath));
             }
         }
     }
@@ -205,17 +240,25 @@ class PackageUtils
         // add all files to zip
         $module_files_list = self::getModuleFiles(self::$pkg_directory);
         if (!empty($module_files_list)) {
-            foreach ($module_files_list as $fileRel => $fileReal) {
-                $zip->addFile($fileReal, $fileRel);
+            foreach ($module_files_list as $file_relative => $file_realpath) {
+                $zip->addFile($file_realpath, $file_relative);
             }
         }
  
         $installdefs = self::getInstallDefs($manifest, $module_files_list);
+        
+        if (!empty($installdefs['copy'])) {
+            $installdefs_copy = $installdefs['copy'];
+            unset($installdefs['copy']);
+        } else {
+            $installdefs_copy = array();
+        }
 
         $manifestContent = sprintf(
-            "<?php\n\n\$manifest = %s;\n\n\$installdefs = %s;\n",
+            "<?php\n\n\$manifest = %s;\n\n\$installdefs = %s;\n\n\$installdefs['copy'] = %s;\n",
             var_export($manifest, true),
-            preg_replace('(\s+\d+\s=>)', '', var_export($installdefs, true))
+            var_export($installdefs, true),
+            preg_replace('(\s+\d+\s=>)', '', var_export($installdefs_copy, true))
         );
 
         // adding the file as well, for reference purpose only
@@ -270,20 +313,20 @@ class PackageUtils
                                 PackageOutput::message('* Generating template files for module: ' . $module);
                                 // replace modulename from path
                                 $current_module_destination = str_replace('{MODULENAME}', $module, $template_dst_directory);
-                                foreach ($template_files_list as $fileRel => $fileReal) {
+                                foreach ($template_files_list as $file_relative => $file_realpath) {
                                     // build destination
                                     $destination_directory = self::$pkg_directory . DIRECTORY_SEPARATOR . $current_module_destination . 
-                                        DIRECTORY_SEPARATOR . dirname($fileRel) . DIRECTORY_SEPARATOR;
-                                    PackageOutput::message('* Generating '.$destination_directory . basename($fileRel));
+                                        DIRECTORY_SEPARATOR . dirname($file_relative) . DIRECTORY_SEPARATOR;
+                                    PackageOutput::message('* Generating '.$destination_directory . basename($file_relative));
                                     
                                     PackageOutput::createDirectory($destination_directory);
-                                    PackageOutput::copyFile($fileReal, $destination_directory . basename($fileRel));
+                                    PackageOutput::copyFile($file_realpath, $destination_directory . basename($file_relative));
 
                                     // modify content
-                                    $content = PackageOutput::readFile($destination_directory . basename($fileRel));
+                                    $content = PackageOutput::readFile($destination_directory . basename($file_relative));
                                     $content = str_replace('{MODULENAME}', $module, $content);
                                     $content = str_replace('{OBJECTNAME}', $object, $content);
-                                    PackageOutput::writeFile($destination_directory . basename($fileRel), $content);
+                                    PackageOutput::writeFile($destination_directory . basename($file_relative), $content);
                                 }
                             }
                         }
