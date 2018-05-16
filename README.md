@@ -1,8 +1,17 @@
-# sugar-module-packager
+# Sugar Module Packager
 
-Require the package within your module's package directory by executing: `composer require esimonetti/sugar-module-packager 0.2.0`
+There are two options to start using the Sugar Module Packager:
 
-Your gitignore should look something like the following:
+* Start from the pre-made template
+* Start from scratch by requiring the composer library
+
+## Start from pre-made template
+Visit https://github.com/esimonetti/SugarTemplateModule and follow the instructions
+
+## Start from scratch
+Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.0`
+
+The .gitignore should look like the following:
 ```
 composer.lock
 /vendor/
@@ -10,12 +19,13 @@ composer.lock
 /releases/
 ```
 
-Once your package's code is ready to be delivered, to run the packager execute: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
+## How to package an installable  module
+Once the package's code is ready to be installed, to run the packager execute: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
 
 ## Example
-A simple code example on how to leverage this library can be found here: https://github.com/esimonetti/SugarModulePackagerSample
+A simple code example on how to leverage this library can be found on: https://github.com/esimonetti/SugarModulePackagerSample
 
-### Explanation notes
+## Details
 * The `src` directory contains the code that should be copied into the Sugar instance according to their relative path within `src`
     * There are a couple of exceptions: `LICENSE` and `README.txt` files will not be copied into the instance, just into the installable package
 * `configuration` directory
