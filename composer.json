@@ -11,7 +11,8 @@
         }
     ],
     "bin": [
-        "bin/package"
+        "bin/package",
+        "bin/package-docker"
     ],
     "require": {
         "php": ">=5.6"
