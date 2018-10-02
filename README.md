@@ -9,7 +9,7 @@ There are two options to start using the Sugar Module Packager:
 Visit https://github.com/esimonetti/SugarTemplateModule and follow the instructions
 
 ## Start from scratch
-Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.0`
+Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.2`
 
 The .gitignore should look like the following:
 ```
@@ -21,6 +21,13 @@ composer.lock
 
 ## How to package an installable  module
 Once the package's code is ready to be installed, to run the packager execute: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
+
+## What if PHP and/or Composer are not locally installed? If you have Docker, we have an image for that!
+First of all, run the following command to initialise the dependencies through composer:
+```
+docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:v0.1 sh -c "composer update"
+```
+After the Sugar Module Packager has been downloaded successfully, it is possible to package the module (via Docker) by executing: `./vendor/bin/package-docker <version number>` ie: `./vendor/bin/package-docker 1.6`
 
 ## Example
 A simple code example on how to leverage this library can be found on: https://github.com/esimonetti/SugarModulePackagerSample

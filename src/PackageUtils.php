@@ -15,7 +15,7 @@ use ZipArchive;
 
 class PackageUtils
 {
-    const SW_VERSION = '0.2.0';
+    const SW_VERSION = '0.2.2';
     const SW_NAME = 'SugarModulePackager';
 
     protected static $release_directory = 'releases';
@@ -42,7 +42,7 @@ class PackageUtils
         'pre_uninstall',
         'post_uninstall'
     );
-    protected static $manifest_default_install_version_string = "array('^7.9.[\d]+.[\d]+$')";
+    protected static $manifest_default_install_version_string = "array('^8.[\d]+.[\d]+$')";
     protected static $manifest_default_author = 'Enrico Simonetti';
 
     private static function getSoftwareVersionNumber()
