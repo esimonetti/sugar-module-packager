@@ -2,13 +2,37 @@
 
 There are two options to start using the Sugar Module Packager:
 
-* Start from the pre-made template
-* Start from scratch by requiring the composer library
+* Start from the pre-made template (with or without Docker)
+* Start from scratch by requiring the composer library (with or without Docker)
 
-## Start from pre-made template
+## Docker
+If you have Docker installed, you can conveniently run the following commands
+
+### New package - Start from pre-made template
+```
+mkdir my-module
+cd my-module
+docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager template
+```
+
+### New package - Start from scratch
+```
+mkdir my-module
+cd my-module
+docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager new
+```
+
+### Packaging of code
+After the Sugar Module Packager has been installed successfully, it is possible to package your code (through Docker) by executing: `./vendor/bin/package-docker <version number>` ie: `./vendor/bin/package-docker 1.6`
+
+
+## Manual Approach
+Alternatively to Docker, it is possible to proceed with the manual approach
+
+### New package - Start from pre-made template
 Visit https://github.com/esimonetti/SugarTemplateModule and follow the instructions
 
-## Start from scratch
+### New package - Start from scratch
 Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.2`
 
 The .gitignore should look like the following:
@@ -19,26 +43,19 @@ composer.lock
 /releases/
 ```
 
-## How to package an installable  module
-Once the package's code is ready to be installed, to run the packager execute: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
+### Packaging of code
+After the Sugar Module Packager has been installed successfully, it is possible to package your code (through Docker) by executing: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
 
-## What if PHP and/or Composer are not locally installed? If you have Docker, we have an image for that!
-First of all, run the following command to initialise the dependencies through composer:
-```
-docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:v0.1 sh -c "composer update"
-```
-After the Sugar Module Packager has been downloaded successfully, it is possible to package the module (via Docker) by executing: `./vendor/bin/package-docker <version number>` ie: `./vendor/bin/package-docker 1.6`
-
-## Example
+## Additional Example
 A simple code example on how to leverage this library can be found on: https://github.com/esimonetti/SugarModulePackagerSample
 
-## Details
+## Packager Details
 * The `src` directory contains the code that should be copied into the Sugar instance according to their relative path within `src`
     * There are a couple of exceptions: `LICENSE` and `README.txt` files will not be copied into the instance, just into the installable package
 * `configuration` directory
     * Must define the `manifest` information on `manifest.php`
-    * Can define the `installdefs` actions on `installdefs.php`
-    * Can define code templating actions to be completed by the packager, within the `templates.php` file
+    * Optionally, it is possible to define the `installdefs` actions on `installdefs.php`
+    * Optionally, for more complex use-cases, it is possible to define code templating actions to be completed by the packager across multiple modules, within the `templates.php` file
         * It is possible to define multiple template sections based on multiple template actions and patterns to replicate across modules
             * The array keys of the templates configuration array define the package directories to read files from, when generating the output
             * The array content defines the `directory_pattern` tree prefix, that will be appendedd as a prefix of every file path of the local directory
