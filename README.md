@@ -44,7 +44,7 @@ composer.lock
 ```
 
 ### Packaging of code
-After the Sugar Module Packager has been installed successfully, it is possible to package your code (through Docker) by executing: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
+After the Sugar Module Packager has been installed successfully, it is possible to package your code (without Docker) by executing: `./vendor/bin/package <version number>` ie: `./vendor/bin/package 1.6`
 
 ## Additional Example
 A simple code example on how to leverage this library can be found on: https://github.com/esimonetti/SugarModulePackagerSample
