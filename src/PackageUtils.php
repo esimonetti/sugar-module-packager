@@ -15,7 +15,7 @@ use ZipArchive;
 
 class PackageUtils
 {
-    const SW_VERSION = '0.2.2';
+    const SW_VERSION = '0.2.3';
     const SW_NAME = 'SugarModulePackager';
 
     protected static $release_directory = 'releases';
