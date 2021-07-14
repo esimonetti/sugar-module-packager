@@ -10,8 +10,8 @@ else
     
     if [ ! -d 'vendor' ] || [ ! -f 'composer.lock' ]
     then
-        docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:v0.1 sh -c "composer update"
+        docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:latest sh -c "composer update"
     fi
 
-    docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:v0.1 sh -c "./vendor/bin/package $1"
+    docker run -it -v ${PWD}:/usr/src/packager -w /usr/src/packager esimonetti/sugarmodulepackager:latest sh -c "./vendor/bin/package $1"
 fi
