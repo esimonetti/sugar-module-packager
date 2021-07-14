@@ -33,7 +33,7 @@ Alternatively to Docker, it is possible to proceed with the manual approach
 Visit https://github.com/esimonetti/SugarTemplateModule and follow the instructions
 
 ### New package - Start from scratch
-Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.2`
+Require the composer library within your module's source directory by executing: `composer require esimonetti/sugar-module-packager 0.2.3`
 
 The .gitignore should look like the following:
 ```
