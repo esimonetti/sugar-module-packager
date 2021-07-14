@@ -100,7 +100,7 @@ class PackageUtils
                 if ($file->isFile()) {
                     $file_realpath = $file->getRealPath();
                     if (!in_array($file->getFilename(), self::$files_to_remove_from_zip)) {
-                        $file_relative = '' . str_replace($path . '/', '', $file_realpath);
+                        $file_relative = '' . str_replace($path . DIRECTORY_SEPARATOR, '', $file_realpath);
                         $result[$file_relative] = $file_realpath;
                     }
                 }
