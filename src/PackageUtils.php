@@ -40,7 +40,9 @@ class PackageUtils
         'pre_execute',
         'post_execute',
         'pre_uninstall',
-        'post_uninstall'
+        'post_uninstall',
+        'language',
+        'image_dir',
     );
     protected static $manifest_default_install_version_string = "array('^8.[\d]+.[\d]+$')";
     protected static $manifest_default_author = 'Enrico Simonetti';
@@ -180,8 +182,9 @@ class PackageUtils
         }
 
         if (!empty($module_files_list)) {
+            $ignoreMap = self::makeIgnoreInstallDefFileMap($installdefs);
             foreach ($module_files_list as $file_relative => $file_realpath) {
-                if (self::shouldAddToManifestCopy($file_relative, $installdefs)) {
+                if (self::shouldAddToManifestCopy($file_relative, $ignoreMap)) {
                     $installdefs_generated['copy'][] = array(
                         'from' => '<basepath>/' . $file_relative,
                         'to' => $file_relative,
@@ -198,23 +201,17 @@ class PackageUtils
         return $installdefs;
     }
 
-    protected static function shouldAddToManifestCopy($file_relative, $custom_installdefs)
+    protected static function shouldAddToManifestCopy($file_relative, $ignoreMap)
     {
-        if (!in_array(basename($file_relative), self::$files_to_remove_from_manifest_copy)) {
-            // check and dont copy all *_execute and *_uninstall installdefs keyword files
-            foreach (self::$installdefs_keys_to_remove_from_manifest_copy as $to_remove) {
-                if (!empty($custom_installdefs[$to_remove])) {
-                    foreach ($custom_installdefs[$to_remove] as $manifest_file_copy) {
-                        // found matching relative file as one of the *_execute or *_uninstall scripts
-                        if (strcmp(str_replace('<basepath>/', '', $manifest_file_copy), $file_relative) == 0) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return true;
+        if (in_array(basename($file_relative), self::$files_to_remove_from_manifest_copy)) {
+            return false;
         }
-        return false;
+
+        if (in_array($file_relative, $ignoreMap)) {
+            return false;
+        }
+
+        return true;
     }
     
     protected static function copySrcIntoPkg()
@@ -334,5 +331,74 @@ class PackageUtils
                 }
             }
         }
+    }
+
+    /**
+     * makeIgnoreInstallDefFileMap parses the provided installdefs array
+     * (installdefs.php file from configuration directory to build an array of files
+     * and directories that are attached to any of "ignore" installdef keys
+     * @param array $customInstallDef contents of a custom installdefs
+     * @return array list of files that should be ignored/skipped when generating installdef
+     * "copy" entries
+     */
+    protected static function makeIgnoreInstallDefFileMap(array $customInstallDef)
+    {
+        $fileMap = array();
+
+        foreach (self::$installdefs_keys_to_remove_from_manifest_copy as $to_remove) {
+            //do we have the key in the provided $customInstallDef?
+            if (array_key_exists($to_remove, $customInstallDef)) {
+
+                if (is_array($customInstallDef[$to_remove])) {
+                    foreach ($customInstallDef[$to_remove] as $manifest_file_copy) {
+                        /*
+                         * $manifest_file_copy can be possibly one of 2 value types:
+                         *  - string
+                         *  - array
+                         *
+                         *  If we have an array we'll check for "from" key.
+                         *
+                         *  If we have a string then it's either a file or a directory
+                         */
+                        if (is_array($manifest_file_copy)) {
+                            //does it have a from key?
+                            if (array_key_exists('from', $manifest_file_copy)) {
+                                $fileMap[] =
+                                    str_replace('<basepath>/', '', $manifest_file_copy['from']);
+                            }
+                        } else { //not an array
+                            // found matching relative file as one of the *_execute or *_uninstall scripts
+                            $fileMap[] = str_replace('<basepath>/', '', $manifest_file_copy);
+                        }
+                    }
+                } else if (self::looksLikeAFilePathString($customInstallDef[$to_remove])) { //assume it's a string
+                    $relativeFile = str_replace('<basepath>/', '', $customInstallDef[$to_remove]);
+                    if (is_dir(realpath(self::$pkg_directory . DIRECTORY_SEPARATOR . $relativeFile))) {
+                        $dirFiles = self::getModuleFiles(self::$pkg_directory . DIRECTORY_SEPARATOR . $relativeFile);
+                        foreach ($dirFiles as $key => $fullPath) {
+                            $fileMap[] = $relativeFile . DIRECTORY_SEPARATOR . $key;
+                        }
+                    } else {
+                        $fileMap[] = $relativeFile;
+                    }
+                }
+            }
+        }
+
+        return $fileMap;
+    }
+
+    /**
+     * looksLikeAFilePathString simply assumes that if the string begins with
+     * the string <basepath>, then the passed in filePath string, for our purposes,
+     * refers to a file or directory
+     * @param string $filePath will be checked to see if it is a possible
+     * file or directory path.
+     * @return bool
+     */
+    private static function looksLikeAFilePathString($filePath)
+    {
+        $needle = '<basepath>';
+        return substr_compare($filePath, $needle, 0, strlen($needle)) === 0;
     }
 }
